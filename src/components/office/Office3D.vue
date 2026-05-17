@@ -4,9 +4,11 @@ import { TresCanvas, useLoop } from '@tresjs/core'
 import { OrbitControls } from '@tresjs/cientos'
 import * as THREE from 'three'
 import { useOfficeSocket } from '@/composables/useOfficeSocket'
+import { useSound } from '@/composables/useSound'
 import type { Agent } from '@/types'
 
 const { agents, eventTimeline } = useOfficeSocket()
+const { playHover, playSelect } = useSound()
 
 const selectedAgentId = ref<string | null>(null)
 const hoveredAgentId = ref<string | null>(null)
@@ -276,8 +278,8 @@ loop.onBeforeRender(() => {
           <TresMesh
             :scale="getAgentScale(agent)"
             :cast-shadow="true"
-            @click="() => selectAgent(agent.id)"
-            @pointer-enter="() => hoveredAgentId = agent.id"
+            @click="() => { selectAgent(agent.id); playSelect() }"
+            @pointer-enter="() => { hoveredAgentId = agent.id; playHover() }"
             @pointer-leave="() => hoveredAgentId = null"
           >
             <TresBoxGeometry :args="[0.6, 0.7, 0.3]" />

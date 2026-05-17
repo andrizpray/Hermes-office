@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useOfficeSocket } from '@/composables/useOfficeSocket'
+import { useSound } from '@/composables/useSound'
 import type { Agent } from '@/types'
 
 const { agents, eventTimeline, sendChat } = useOfficeSocket()
+const { playTaskComplete, playStatusChange, playMessage } = useSound()
 
 const selectedAgentId = ref<string | null>(null)
 const chatInput = ref('')
@@ -66,6 +68,15 @@ const formatTime = (timestamp: string): string => {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   return date.toLocaleTimeString()
 }
+
+// Play sound on new events
+watch(() => eventTimeline.value.length, () => {
+  const latest = eventTimeline.value[0]
+  if (!latest) return
+  if (latest.type === 'task_complete') playTaskComplete()
+  else if (latest.type === 'status_change') playStatusChange()
+  else if (latest.type === 'message') playMessage()
+})
 
 const sendMessage = () => {
   if (!chatInput.value.trim() || !selectedAgentId.value) return
