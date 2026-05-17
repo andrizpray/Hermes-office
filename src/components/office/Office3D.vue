@@ -132,11 +132,47 @@ const selectedAgent = computed(() => {
 
 const deskPos = (desk: { x: number; z: number }): [number, number, number] => [desk.x, 0.4, desk.z]
 
+// ─── Room Navigation ───
+interface Room {
+  name: string
+  camPos: [number, number, number]
+  lookAt: [number, number, number]
+  color: string
+  deskRange: [number, number]  // index range of desks in this room
+}
+
+const rooms: Room[] = [
+  { name: 'Main Office', camPos: [0, 20, 20], lookAt: [0, 0, 0], color: '#6366f1', deskRange: [0, 9] },
+  { name: 'Server Room', camPos: [-16, 12, 6], lookAt: [-6, 0, 6], color: '#22c55e', deskRange: [0, 2] },
+  { name: 'Meeting Room', camPos: [16, 12, 6], lookAt: [6, 0, 6], color: '#f59e0b', deskRange: [3, 5] },
+  { name: 'Kitchen', camPos: [0, 12, -10], lookAt: [0, 0, -4], color: '#ec4899', deskRange: [6, 9] },
+]
+
+const activeRoom = ref(0)
+const targetCamPos = ref<[number, number, number]>([...camPos])
+const targetLookAt = ref<[number, number, number]>([...lookAt])
+
+const navigateToRoom = (index: number) => {
+  activeRoom.value = index
+  targetCamPos.value = [...rooms[index].camPos]
+  targetLookAt.value = [...rooms[index].lookAt]
+}
+
 const loop = useLoop()
 let time = 0
 
 loop.onBeforeRender(() => {
   time += 0.016
+
+  // Smooth camera lerp
+  const lerpSpeed = 0.04
+  camPos[0] += (targetCamPos.value[0] - camPos[0]) * lerpSpeed
+  camPos[1] += (targetCamPos.value[1] - camPos[1]) * lerpSpeed
+  camPos[2] += (targetCamPos.value[2] - camPos[2]) * lerpSpeed
+  lookAt[0] += (targetLookAt.value[0] - lookAt[0]) * lerpSpeed
+  lookAt[1] += (targetLookAt.value[1] - lookAt[1]) * lerpSpeed
+  lookAt[2] += (targetLookAt.value[2] - lookAt[2]) * lerpSpeed
+
   animStates.value.forEach((state, agentId) => {
     const agent = agents.value.find(a => a.id === agentId)
     if (agent?.status === 'working') {
@@ -162,9 +198,20 @@ loop.onBeforeRender(() => {
       <span class="text-xs text-text-secondary">{{ agents.length }} agents online</span>
     </div>
 
-    <!-- Room Labels -->
-    <div class="absolute top-16 left-4 z-10 text-xs space-y-1">
-      <div class="px-2 py-1 rounded bg-accent/20 text-accent border border-accent/30">Main Office</div>
+    <!-- Room Navigation -->
+    <div class="absolute top-4 left-4 z-10 flex flex-col gap-1">
+      <button
+        v-for="(room, i) in rooms"
+        :key="room.name"
+        @click="navigateToRoom(i)"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left"
+        :class="activeRoom === i
+          ? 'bg-accent/30 text-accent border-accent/50 shadow-lg shadow-accent/10'
+          : 'bg-bg-card/80 text-text-secondary border-border hover:bg-bg-hover hover:text-text-primary'"
+      >
+        <span class="inline-block w-2 h-2 rounded-full mr-2" :style="{ backgroundColor: room.color }"></span>
+        {{ room.name }}
+      </button>
     </div>
 
     <!-- 3D Canvas -->
