@@ -6,10 +6,30 @@ import * as THREE from 'three'
 import { useOfficeSocket } from '@/composables/useOfficeSocket'
 import type { Agent } from '@/types'
 
-const { agents } = useOfficeSocket()
+const { agents, eventTimeline } = useOfficeSocket()
 
 const selectedAgentId = ref<string | null>(null)
 const hoveredAgentId = ref<string | null>(null)
+
+const filteredAgentEvents = computed(() => {
+  if (!selectedAgentId.value) return []
+  return eventTimeline.value
+    .filter(e => e.agentId === selectedAgentId.value)
+    .slice(0, 20)
+})
+
+const agentStats = computed(() => {
+  if (!selectedAgentId.value) return { completed: 0, started: 0 }
+  const events = eventTimeline.value.filter(e => e.agentId === selectedAgentId.value)
+  return {
+    completed: events.filter(e => e.type === 'task_complete').length,
+    started: events.filter(e => e.type === 'task_start').length,
+  }
+})
+
+const closeAgent = () => {
+  selectedAgentId.value = null
+}
 
 interface AgentAnimState {
   bobOffset: number
@@ -313,42 +333,119 @@ loop.onBeforeRender(() => {
       </TresMesh>
     </TresCanvas>
 
-    <!-- Selected Agent Info -->
+    <!-- Selected Agent Detail Panel -->
     <Transition name="slide-up">
       <div
         v-if="selectedAgent"
-        class="absolute bottom-4 left-4 z-10 w-72 p-4 rounded-xl bg-bg-card/90 backdrop-blur-md border border-border shadow-lg"
+        class="absolute bottom-4 left-4 z-10 w-80 p-4 rounded-xl bg-bg-card/95 backdrop-blur-md border border-border shadow-xl"
       >
+        <!-- Header -->
         <div class="flex items-center gap-3 mb-3">
           <div
-            class="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
+            class="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold shadow-md"
             :style="{ backgroundColor: getAgentColor(selectedAgent.status) + '30', color: getAgentColor(selectedAgent.status) }"
           >
             {{ selectedAgent.name.charAt(0).toUpperCase() }}
           </div>
-          <div>
-            <h3 class="font-semibold text-text-primary">{{ selectedAgent.name }}</h3>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-text-primary truncate">{{ selectedAgent.name }}</h3>
             <p class="text-xs text-text-secondary">{{ selectedAgent.role }}</p>
           </div>
-          <div class="ml-auto">
-            <span
-              class="px-2 py-0.5 rounded-full text-xs font-medium"
-              :class="{
-                'bg-success/20 text-success': selectedAgent.status === 'working',
-                'bg-accent/20 text-accent': selectedAgent.status === 'idle',
-                'bg-gray-500/20 text-gray-400': selectedAgent.status === 'offline'
-              }"
-            >
-              {{ selectedAgent.status }}
-            </span>
+          <span
+            class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0"
+            :class="{
+              'bg-success/20 text-success': selectedAgent.status === 'working',
+              'bg-accent/20 text-accent': selectedAgent.status === 'idle',
+              'bg-gray-500/20 text-gray-400': selectedAgent.status === 'offline'
+            }"
+          >
+            {{ selectedAgent.status }}
+          </span>
+          <button
+            @click="closeAgent"
+            class="w-7 h-7 rounded-full bg-bg-hover hover:bg-border transition-colors flex items-center justify-center text-text-secondary hover:text-text-primary ml-1"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="bg-bg-hover rounded-lg p-2 text-center">
+            <div class="text-lg font-bold text-success">{{ agentStats.completed }}</div>
+            <div class="text-[10px] text-text-secondary">Completed</div>
+          </div>
+          <div class="bg-bg-hover rounded-lg p-2 text-center">
+            <div class="text-lg font-bold text-accent">{{ agentStats.started }}</div>
+            <div class="text-[10px] text-text-secondary">Started</div>
+          </div>
+          <div class="bg-bg-hover rounded-lg p-2 text-center">
+            <div class="text-lg font-bold" :class="selectedAgent.status === 'working' ? 'text-success' : 'text-text-secondary'">
+              {{ selectedAgent.status === 'working' ? '🟢' : selectedAgent.status === 'idle' ? '🔵' : '⚫' }}
+            </div>
+            <div class="text-[10px] text-text-secondary capitalize">{{ selectedAgent.status }}</div>
           </div>
         </div>
-        <div v-if="selectedAgent.currentTask" class="text-xs text-text-secondary flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full animate-pulse" :class="selectedAgent.status === 'working' ? 'bg-success' : 'bg-accent'"></span>
-          <span>{{ selectedAgent.currentTask }}</span>
+
+        <!-- Current Task -->
+        <div v-if="selectedAgent.currentTask" class="mb-3">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-2 h-2 rounded-full animate-pulse" :class="selectedAgent.status === 'working' ? 'bg-success' : 'bg-accent'"></span>
+            <span class="text-xs text-text-secondary">Current Task</span>
+          </div>
+          <p class="text-xs text-text-primary bg-bg-hover rounded px-2 py-1.5">{{ selectedAgent.currentTask }}</p>
+          <div v-if="selectedAgent.status === 'working'" class="mt-1.5 h-1 bg-bg-hover rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-accent to-success rounded-full animate-pulse" style="width: 65%"></div>
+          </div>
         </div>
-        <div v-if="selectedAgent.lastActivity" class="text-xs text-text-secondary mt-1">
+
+        <!-- Last active -->
+        <div v-if="selectedAgent.lastActivity" class="text-xs text-text-secondary mb-3">
           Last active: {{ new Date(selectedAgent.lastActivity).toLocaleTimeString() }}
+        </div>
+
+        <!-- Task History -->
+        <div v-if="filteredAgentEvents.length > 0" class="mb-3">
+          <div class="text-xs text-text-secondary mb-1.5">Recent Activity</div>
+          <div class="max-h-32 overflow-y-auto space-y-1">
+            <div
+              v-for="event in filteredAgentEvents.slice(0, 6)"
+              :key="event.timestamp"
+              class="flex items-center gap-2 text-[10px]"
+            >
+              <span
+                class="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+                :class="{
+                  'bg-success/20 text-success': event.type === 'task_complete',
+                  'bg-accent/20 text-accent': event.type === 'task_start',
+                  'bg-blue-500/20 text-blue-400': event.type === 'status_change',
+                  'bg-purple-500/20 text-purple-400': event.type === 'message'
+                }"
+              >
+                <span v-if="event.type === 'task_complete'">✓</span>
+                <span v-else-if="event.type === 'task_start'">▶</span>
+                <span v-else-if="event.type === 'status_change'">⟳</span>
+                <span v-else>💬</span>
+              </span>
+              <span class="text-text-secondary flex-1 truncate">{{ event.data?.message || event.type }}</span>
+              <span class="text-text-secondary/60 shrink-0">{{ new Date(event.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2">
+          <button
+            class="flex-1 py-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 text-accent text-xs font-medium transition-colors"
+          >
+            💬 Message
+          </button>
+          <button
+            @click="closeAgent"
+            class="px-3 py-1.5 rounded-lg bg-bg-hover hover:bg-border text-text-secondary text-xs transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </Transition>
