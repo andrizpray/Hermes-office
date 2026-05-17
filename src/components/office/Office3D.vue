@@ -63,7 +63,6 @@ const LIGHT_COLOR_1 = '#6366f1'
 const LIGHT_COLOR_2 = '#818cf8'
 const ORB_COLOR = '#6366f1'
 const SHADOW_COLOR = '#000000'
-const WHITE_COLOR = '#ffffff'
 const DOUBLE_SIDE = THREE.DoubleSide
 
 const deskPositions = [
@@ -100,6 +99,14 @@ const getAgentColor = (status: Agent['status']): string => {
     case 'offline': return '#6b7280'
     default: return '#6366f1'
   }
+}
+
+const getRoleAccent = (role: string): string => {
+  if (role.toLowerCase().includes('dev')) return '#3b82f6'
+  if (role.toLowerCase().includes('design')) return '#ec4899'
+  if (role.toLowerCase().includes('data')) return '#f59e0b'
+  if (role.toLowerCase().includes('qa')) return '#14b8a6'
+  return '#6366f1'
 }
 
 const getAgentScale = (agent: Agent): [number, number, number] => {
@@ -234,16 +241,38 @@ loop.onBeforeRender(() => {
         <TresMeshStandardMaterial :color="MONITOR_COLOR" :roughness="0.5" :metalness="0.5" />
       </TresMesh>
 
-      <!-- Agent Avatars -->
+      <!-- Agent Avatars — Low-poly Humanoid -->
       <template v-for="(agent, index) in agents" :key="agent.id">
         <TresGroup :position="getAgentPosition(agent, index)">
           <!-- Shadow -->
           <TresMesh :rotation="[-Math.PI / 2, 0, 0]" :position="[0, -1.15, 0]">
-            <TresCircleGeometry :args="[0.4, 16]" />
-            <TresMeshBasicMaterial :color="SHADOW_COLOR" :transparent="true" :opacity="0.2" />
+            <TresCircleGeometry :args="[0.5, 16]" />
+            <TresMeshBasicMaterial :color="SHADOW_COLOR" :transparent="true" :opacity="0.25" />
           </TresMesh>
 
-          <!-- Body -->
+          <!-- Legs -->
+          <TresMesh :position="[-0.13, -0.7, 0]" :cast-shadow="true">
+            <TresBoxGeometry :args="[0.16, 0.5, 0.16]" />
+            <TresMeshStandardMaterial
+              :color="getRoleAccent(agent.role)"
+              :emissive="getRoleAccent(agent.role)"
+              :emissive-intensity="0.1"
+              :roughness="0.5"
+              :metalness="0.4"
+            />
+          </TresMesh>
+          <TresMesh :position="[0.13, -0.7, 0]" :cast-shadow="true">
+            <TresBoxGeometry :args="[0.16, 0.5, 0.16]" />
+            <TresMeshStandardMaterial
+              :color="getRoleAccent(agent.role)"
+              :emissive="getRoleAccent(agent.role)"
+              :emissive-intensity="0.1"
+              :roughness="0.5"
+              :metalness="0.4"
+            />
+          </TresMesh>
+
+          <!-- Torso -->
           <TresMesh
             :scale="getAgentScale(agent)"
             :cast-shadow="true"
@@ -251,47 +280,106 @@ loop.onBeforeRender(() => {
             @pointer-enter="() => hoveredAgentId = agent.id"
             @pointer-leave="() => hoveredAgentId = null"
           >
-            <TresCapsuleGeometry :args="[0.3, 0.8, 8, 16]" />
+            <TresBoxGeometry :args="[0.6, 0.7, 0.3]" />
+            <TresMeshStandardMaterial
+              :color="getRoleAccent(agent.role)"
+              :emissive="getAgentColor(agent.status)"
+              :emissive-intensity="hoveredAgentId === agent.id ? 0.4 : 0.15"
+              :roughness="0.4"
+              :metalness="0.5"
+            />
+          </TresMesh>
+
+          <!-- Chest panel (screen on torso) -->
+          <TresMesh :position="[0, 0.05, 0.16]">
+            <TresBoxGeometry :args="[0.28, 0.22, 0.02]" />
             <TresMeshStandardMaterial
               :color="getAgentColor(agent.status)"
               :emissive="getAgentColor(agent.status)"
-              :emissive-intensity="hoveredAgentId === agent.id ? 0.5 : 0.2"
-              :roughness="0.4"
+              :emissive-intensity="agent.status === 'working' ? 0.6 : 0.2"
+              :roughness="0.2"
+              :metalness="0.8"
+            />
+          </TresMesh>
+
+          <!-- Left arm -->
+          <TresMesh :position="[-0.42, 0.05, 0]" :cast-shadow="true">
+            <TresBoxGeometry :args="[0.14, 0.55, 0.14]" />
+            <TresMeshStandardMaterial
+              :color="getRoleAccent(agent.role)"
+              :emissive="getRoleAccent(agent.role)"
+              :emissive-intensity="0.08"
+              :roughness="0.5"
+              :metalness="0.4"
+            />
+          </TresMesh>
+
+          <!-- Right arm -->
+          <TresMesh :position="[0.42, 0.05, 0]" :cast-shadow="true">
+            <TresBoxGeometry :args="[0.14, 0.55, 0.14]" />
+            <TresMeshStandardMaterial
+              :color="getRoleAccent(agent.role)"
+              :emissive="getRoleAccent(agent.role)"
+              :emissive-intensity="0.08"
+              :roughness="0.5"
+              :metalness="0.4"
+            />
+          </TresMesh>
+
+          <!-- Neck -->
+          <TresMesh :position="[0, 0.46, 0]">
+            <TresCylinderGeometry :args="[0.1, 0.1, 0.12, 8]" />
+            <TresMeshStandardMaterial
+              :color="getRoleAccent(agent.role)"
+              :roughness="0.3"
               :metalness="0.6"
             />
           </TresMesh>
 
           <!-- Head -->
-          <TresMesh :scale="getAgentScale(agent)" :cast-shadow="true">
-            <TresSphereGeometry :args="[0.25, 16, 16]" />
+          <TresMesh :position="[0, 0.7, 0]" :scale="getAgentScale(agent)" :cast-shadow="true">
+            <TresBoxGeometry :args="[0.42, 0.42, 0.38]" />
             <TresMeshStandardMaterial
-              :color="getAgentColor(agent.status)"
+              :color="getRoleAccent(agent.role)"
               :emissive="getAgentColor(agent.status)"
-              :emissive-intensity="0.15"
+              :emissive-intensity="0.2"
               :roughness="0.3"
               :metalness="0.5"
             />
           </TresMesh>
 
-          <!-- Eyes -->
-          <TresMesh :position="[0.08, 2.02, 0.2]">
-            <TresSphereGeometry :args="[0.04, 8, 8]" />
-            <TresMeshBasicMaterial :color="WHITE_COLOR" />
-          </TresMesh>
-          <TresMesh :position="[-0.08, 2.02, 0.2]">
-            <TresSphereGeometry :args="[0.04, 8, 8]" />
-            <TresMeshBasicMaterial :color="WHITE_COLOR" />
+          <!-- Visor (face screen) -->
+          <TresMesh :position="[0, 0.7, 0.2]">
+            <TresBoxGeometry :args="[0.3, 0.18, 0.02]" />
+            <TresMeshStandardMaterial
+              :color="getAgentColor(agent.status)"
+              :emissive="getAgentColor(agent.status)"
+              :emissive-intensity="agent.status === 'working' ? 0.8 : 0.3"
+              :roughness="0.1"
+              :metalness="0.9"
+            />
           </TresMesh>
 
-          <!-- Working ring -->
-          <TresMesh
-            v-if="(animStates.get(agent.id)?.ringScale ?? 0) > 0.01"
-            :position="[0, -0.15, 0]"
-            :rotation="[-Math.PI / 2, 0, 0]"
-            :scale="[animStates.get(agent.id)?.ringScale ?? 0, animStates.get(agent.id)?.ringScale ?? 0, 1]"
-          >
-            <TresRingGeometry :args="[0.6, 0.75, 32]" />
-            <TresMeshBasicMaterial :color="getAgentColor(agent.status)" :transparent="true" :opacity="0.5" />
+          <!-- Antenna -->
+          <TresMesh :position="[0, 1.02, 0]">
+            <TresCylinderGeometry :args="[0.025, 0.02, 0.22, 6]" />
+            <TresMeshStandardMaterial
+              :color="getAgentColor(agent.status)"
+              :emissive="getAgentColor(agent.status)"
+              :emissive-intensity="0.5"
+              :roughness="0.2"
+              :metalness="0.8"
+            />
+          </TresMesh>
+          <TresMesh :position="[0, 1.15, 0]">
+            <TresSphereGeometry :args="[0.055, 8, 8]" />
+            <TresMeshStandardMaterial
+              :color="getAgentColor(agent.status)"
+              :emissive="getAgentColor(agent.status)"
+              :emissive-intensity="1"
+              :roughness="0.1"
+              :metalness="0.5"
+            />
           </TresMesh>
 
           <!-- Working glow ring -->
@@ -304,10 +392,21 @@ loop.onBeforeRender(() => {
             <TresMeshBasicMaterial :color="getAgentColor(agent.status)" :transparent="true" :opacity="0.2" />
           </TresMesh>
 
-          <!-- Task indicator -->
-          <TresMesh v-if="agent.status === 'working'" :position="[0.4, 2.5, 0]">
-            <TresBoxGeometry :args="[0.15, 0.15, 0.15]" />
-            <TresMeshBasicMaterial :color="getAgentColor(agent.status)" :transparent="true" :opacity="0.8" />
+          <!-- Working pulse ring -->
+          <TresMesh
+            v-if="agent.status === 'working'"
+            :position="[0, -0.15, 0]"
+            :rotation="[-Math.PI / 2, 0, 0]"
+            :scale="[animStates.get(agent.id)?.ringScale ?? 0, animStates.get(agent.id)?.ringScale ?? 0, 1]"
+          >
+            <TresRingGeometry :args="[0.55, 0.7, 32]" />
+            <TresMeshBasicMaterial :color="getAgentColor(agent.status)" :transparent="true" :opacity="0.4" />
+          </TresMesh>
+
+          <!-- Task indicator above head -->
+          <TresMesh v-if="agent.status === 'working'" :position="[0, 1.4, 0]">
+            <TresBoxGeometry :args="[0.12, 0.12, 0.12]" />
+            <TresMeshBasicMaterial :color="getAgentColor(agent.status)" :transparent="true" :opacity="0.9" />
           </TresMesh>
         </TresGroup>
       </template>
