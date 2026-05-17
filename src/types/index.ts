@@ -10,7 +10,7 @@ export interface Agent {
 }
 
 export interface AgentEvent {
-  type: 'status_change' | 'new_task' | 'task_complete' | 'agent_join' | 'agent_leave'
+  type: 'status_change' | 'task_complete' | 'task_start' | 'message'
   agentId: string
   timestamp: string
   data?: Record<string, unknown>

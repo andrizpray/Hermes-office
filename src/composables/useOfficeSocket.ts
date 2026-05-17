@@ -10,6 +10,7 @@ const SOCKET_URL = 'http://localhost:8091'
 const _agents = ref<Agent[]>([])
 const _isConnected = ref(false)
 const _lastEvent = ref<AgentEvent | null>(null)
+const _eventTimeline = ref<AgentEvent[]>([])
 let _socket: Socket | null = null
 let _initialized = false
 
@@ -69,6 +70,7 @@ function _connect() {
 
   _socket.on('agent:event', (event: AgentEvent) => {
     _lastEvent.value = event
+    _eventTimeline.value = [event, ..._eventTimeline.value.slice(0, 49)]
     console.log('[Office] Agent event:', event.type, event.agentId)
   })
 
@@ -102,6 +104,7 @@ export function useOfficeSocket() {
     agents: readonly(_agents),
     isConnected: readonly(_isConnected),
     lastEvent: readonly(_lastEvent),
+    eventTimeline: readonly(_eventTimeline),
     connect: _connect,
     disconnect: _disconnect,
     sendChat: _sendChat
