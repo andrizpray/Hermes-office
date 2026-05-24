@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏢 AI Office Simulator
+
+Real-time multi-agent office simulation dashboard with glassmorphism UI.
+
+![Next.js](https://img.shields.io/badge/Next.js-16.2-black)
+![React](https://img.shields.io/badge/React-19.2-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+
+## Features
+
+- **Real-time Agent Simulation** — 5 AI agents moving between office rooms autonomously
+- **Live SSE Streaming** — Updates every 500ms via Server-Sent Events
+- **Glassmorphism UI** — Dark theme with blur effects and gradient glows
+- **Office Map** — Visual room layout with agents, desks, and status colors
+- **Task Management** — Auto-assigned tasks with progress tracking
+- **Activity Log** — Color-coded event stream with timestamps
+
+## Tech Stack
+
+- **Next.js 16** (App Router)
+- **React 19**
+- **TypeScript**
+- **Tailwind CSS v4**
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/
+│   ├── api/office/
+│   │   ├── route.ts        # GET /api/office - reset simulation
+│   │   └── stream/route.ts # GET /api/office/stream - SSE stream
+│   ├── globals.css         # Glassmorphism styles
+│   ├── layout.tsx
+│   └── page.tsx            # Main dashboard
+├── components/
+│   ├── ActivityLog.tsx      # Event log with color coding
+│   ├── AgentList.tsx        # Agent cards with progress
+│   ├── OfficeMap.tsx        # Visual office grid
+│   └── StatsBar.tsx         # Live metrics
+└── lib/
+    ├── office-store.ts      # Simulation state + tick logic
+    └── types.ts             # TypeScript interfaces
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Agent Roles
 
-## Learn More
+| Agent | Role | Color |
+|-------|------|-------|
+| Alice | CEO | Purple |
+| Bob | Developer | Blue |
+| Carol | Designer | Pink |
+| Dave | QA | Orange |
+| Eve | Intern | Gray |
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
